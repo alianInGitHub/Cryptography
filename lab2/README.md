@@ -1,1 +1,1 @@
-TripleDES algorythm realisation
+TripleDES algorithm realisation
