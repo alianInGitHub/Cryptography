@@ -12,14 +12,13 @@ public class Fridrich {
     private int size;
     private int N;
     private int messageSize = 16;
-    private int[][] W;
+    private int[][] message;
 
     public Fridrich(BufferedImage image){
+        this.image = image;
         size = image.getWidth();
         N = size * size / (128 * 128);
-        //size = 128;
-        createBlocks(image);
-        generateMessage();
+        
         computeDzeta();
     }
 
@@ -28,55 +27,57 @@ public class Fridrich {
             System.out.print("Irrelevant data\n");
             return null;
         }
+        
+        createBlocks();
+        
+        generateMessage();
+        
         transformBlocks();
+        
         blocks = LowFrequency.parse(blocks, W);
 
         blocks = MiddleFrequency.parse(blocks, W);
 
-        float[][] newBuffer = new float[size][size];
+        float[][] newBlueComponents = new float[size][size];
         for(int i = 0; i < N; i++){
             int t1 = 0;
             int t2 = (i % 2) * 128;
             if( i >= 2 )
                 t1 = 128;
-            for(int j = 0; j < 128; j++){
+            for(int j = 0; j < 128; j++) {
                 for (int k = 0; k < 128; k++) {
-                    System.out.print((j + t1) + "\t" + (k + t2) + "\n");
-                    newBuffer[j + t1][k + t2] = blocks[i][k + j * 128]; //* 255.0f;
+                    newBlueComponents[j + t1][k + t2] = blocks[i][k + j * 128]; //* 255.0f;
                 }
             }
         }
 
-        putBlueComponents(newBuffer);
+        putBlueComponents(newBlueComponents);
 
         return image;
     }
 
 
+    // instead of loading the signature from picture
+    // I generate it randomly. If the signature is loaded,
+    // it has to be black-and-white, all 0 replaced with -1
     private void generateMessage() {
-        W = new int[messageSize][messageSize];
+        message = new int[messageSize][messageSize];
         Random random  = new Random();
         for(int i = 0; i < messageSize; i++){
             for(int j = 0; j < messageSize; j++){
                 W[i][j] = random.nextInt(1);
-                if(W[i][j] == 0){
-                    W[i][j] = -1;
+                if(message[i][j] == 0){
+                    message[i][j] = -1;
                 }
             }
         }
     }
 
-    private void createBlocks(BufferedImage image){
-        this.image = image;
+    private void createBlocks() {
+        
         float[][] blueComponents = getBlueComponents(image);
         blocks = new float[N][128 * 128];
-        /*for(int i = 0; i < N; i++) {
-            for(int j = 0; j < size; j++) {
-                for(int k = 0; k < size; k++) {
-                    blocks[i][j + k] = blueComponents[j][k];
-                }
-            }
-        }*/
+   
         for(int i = 0; i < N; i++) {
             int t = 0;
             if( i > 0 )
@@ -155,7 +156,6 @@ public class Fridrich {
                 if (i == 0) {
                     dzeta[i + j * size] = (float) (1 / Math.sqrt(size));
                 } else {
-                    //System.out.print(Math.sqrt(2) / Math.sqrt(size) + "\t");
                     dzeta[i + j * size] = (float) (Math.sqrt(2) / Math.sqrt(size) * Math.cos(Math.PI * i * (2 * j + 1) / 8));
                 }
             }
