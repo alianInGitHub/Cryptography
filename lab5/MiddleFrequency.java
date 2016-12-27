@@ -52,12 +52,12 @@ public class MiddleFrequency {
         for (int i = 0; i < N - 1; i++){
             if(i == 1){
                 Rdec[i] = s;
-                Rbin = Integer.toBinaryString((int)Rdec[i]).toCharArray();
+                Rbin = DecimalToBinary((int)Rdec[i], d);
             } else {
                 int bit = 0;
                 for(int j = 0; j < d; j++) {
                     if(m[j] == 1)
-                        bit = Byte.valueOf(Rbin[j] + "") >> bit;
+                        bit = (byte) ((Rbin[j] + bit) % 2);
                 }
                 char[] R = Rbin.clone();
                 for (int j = 0; j < d; j++) {
@@ -67,11 +67,43 @@ public class MiddleFrequency {
                         Rbin[j] = String.valueOf(bit).charAt(0);
                     }
                 }
-                Rdec[i] = Integer.parseInt(String.copyValueOf(Rbin));
+                Rdec[i] = BinaryToDecimal(Rbin);
             }
         }
-        Rdec[d] = N;
+        Rdec[N - 1] = N;
         return Rdec;
+    }
+    
+    private int BinaryToDecimal(byte[] binary) {
+        int number = 0;
+        for (int i = 0; i < binary.length; i++) {
+            if(binary[i] == 1) {
+                number += Math.pow(2, binary.length - 1 - i);
+            }
+        }
+        return number;
+    }
+
+    private byte[] DecimalToBinary(int number, int length) {
+        byte[] result = new byte[length];
+
+        if (number <= 1) {
+            result[length - 1] = (byte)number;
+            return result;
+        }
+
+        int i = length - 1;
+        int temp = number;
+        while ((temp > 1) && (i >= 0)) {
+            result[i] = (byte) (temp % 2);
+            temp = temp >> 1;
+            i--;
+        }
+
+        if(i >= 0) {
+            result[i] = (byte) temp;
+        }
+        return result;
     }
 
     private int runif(int a, int b, int c){
@@ -101,19 +133,13 @@ public class MiddleFrequency {
         return e;
     }
 
-    private float[] submatrix(float[] e, int a, int b, int m1, int m2){
-        int n = (b - a) * (m2 - m1);
+    private float[] submatrix(float[] e, int a, int b) {
+        int n = (b - a);
         float[] result = new float[n];
-        float[][] newA = new float[size][size];
-        for(int i = 0; i < size; i++){
-            for (int j = 0; j < size; j++){
-                newA[i][j] = e[i + j * size];
-            }
-        }
-        for(int i = a; i <= b; i++){
-            for(int j = m1; j <= m2; j++) {
-                result[j + i * size] = newA[j][i];
-            }
+        int counter = 0;
+        for(int i = a; i <= b; i++) {
+            result[counter] = e[i];
+            counter++;
         }
         return result;
     }
@@ -124,10 +150,10 @@ public class MiddleFrequency {
          for(int i = 0; i < messageSize; i++){
              if(messageVect[i] == 1) {
                  int m = runif(1, 1, 7);
-                 nu[i] = submatrix(e[i], m, messageSize - m - 1, 1, 1);
+                 nu[i] = submatrix(e[i], m, messageSize - m - 1);
              } else {
                  int m = runif(1, 10, 16);
-                 nu[i] = submatrix(e[i], m, messageSize - m - 1, 1, 1);
+                 nu[i] = submatrix(e[i], m, messageSize - m - 1);
              }
          }
          return nu;
@@ -151,7 +177,7 @@ public class MiddleFrequency {
         return spr;
     }
 
-    private float[][] omega(float[][] input, float[] message){
+    private float[][] omega(float[][] input, float[] message) {
         float[][] omega = new float[input.length][size];
         float[][] spr = spr(message);
         BlockProcessor[] threads = new BlockProcessor[input.length];
@@ -169,56 +195,6 @@ public class MiddleFrequency {
             }
         }
         return omega;
-    }
-
-
-    private float[] stack(float[] a, float[] b, int nCol){
-        int nRowA = a.length / nCol;
-        int nRowB = b.length / nCol;
-        float[] res = new float[nCol * (nRowA + nRowB)];
-        for(int i = 0; i < nCol; i++){
-            //int t = i * nRowA;
-            for (int j = 0; j < nRowA; j++) {
-                res[j * nCol  + i] = a[j * nCol + i];
-            }
-            int t1 = a.length;
-            for (int j = 0; j < nRowB; j++) {
-                res[j + t1] = b[j * nRowB + i];
-            }
-        }
-        return res;
-    }
-
-    private float[] augment(float[] a, float[] b, int nRow) {
-        int nColA = a.length / nRow;
-        int nColB = a.length / nRow;
-
-        float[] res = new float[nRow * (nColA + nColB)];
-        for (int i = 0; i < nRow; i++) {
-            int t = i * nColA;
-            for (int j = 0; j < nColA; j++) {
-                res[t + j] = a[j + t];
-            }
-            int t1 = t + nColA;
-            t = i * nColB;
-            for (int j = 0; j < nColB; j++) {
-                res[j + t1] = a[j + t];
-            }
-        }
-        return res;
-    }
-
-    private float[] zero(int size) {
-        float[] a = new float[size];
-        return a;
-    }
-
-    private boolean isZero(float[] a) {
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] != 0)
-                return false;
-        }
-        return true;
     }
 
     private float[][] insertMessage(float[][] input) {
@@ -252,7 +228,9 @@ public class MiddleFrequency {
 
     public static float[][] parse(float[][] input, int[][] message) {
         float[] messageVect = Fridrich.vertorise(message);
+        
         MiddleFrequency method = new MiddleFrequency();
+        
         messageSize = messageVect.length;
         size = (int)Math.sqrt(input[0].length);
         N = input.length;
